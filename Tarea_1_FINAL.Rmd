@@ -1,0 +1,79 @@
+---
+title: "Tarea_1"
+author: "Angela Cantillo"
+date: "17/9/2019"
+output:
+  html_document:
+  fig_caption: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+# **Tarea 1: Mi primer informe mrd ** #
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+PanTHERIA <- read.delim("G:/Mi unidad/Doctorado/Segundo semestre/Analisis y manipulacion de Dtos en R/Tarea 1/PanTHERIA.txt")
+
+#Variables interes --> MSW05_Binomial , X1.1_ActivitiCycle , X5.1_AdultBodyMass_g , X6.1_DietBreadth , X17.1_MaxLongevity_m , X6.2_TrophicLevel 
+library(tidyverse)
+
+#Selecciono solo los datos de mi interes#
+Pantheria <- rename(PanTHERIA, Species = MSW05_Binomial, ActivityCycle = X1.1_ActivityCycle, AdultBodyMass = X5.1_AdultBodyMass_g, DietBreadth = X6.1_DietBreadth, TrophicLevel = X6.2_TrophicLevel)
+Tabla_1 <- Pantheria %>% select(Orden = MSW05_Order, Especies = Species, Ciclo_Activo = ActivityCycle, AdultBodyMass, DietBreadth, X17.1_MaxLongevity_m, TrophicLevel)
+
+
+##Quito lo que no tiene datos
+Tabla_1 <- Tabla_1 %>% filter(Ciclo_Activo != ("-999"), TrophicLevel != ("-999"), X17.1_MaxLongevity_m != ("-999"), AdultBodyMass != ("-999"), DietBreadth != ("-999"))
+Tabla_1<-mutate(Tabla_1, Longevidad = X17.1_MaxLongevity_m/(12))
+view(Tabla_1)
+
+##Ahora agrupo por Nivel Tr?fico para relacionarlo con la longevidad
+
+Resumen_Longevidad<-group_by(Tabla_1,Ciclo_Activo)
+Resumen_Longevidad<-summarize(Resumen_Longevidad , mean_Longevidad = mean(Longevidad), SD_Longevidad = sd(Longevidad))
+
+```
+A partir de la base de datos de PanTHERIA se tomaron datos de `r length(Tabla_1$Especies)` especies mamíferas diferentes relacionados a su longevidad, ciclo de actividad, tipo de dieta, nivel trófico, entre otros. De estos datos solo se relaciono la longevidad con el tipo de ciclo de actividad.
+
+### Contiene:
+#### - Chunks
+#### - Inline
+#### - Tabla y figura con leyenda
+#### - Pie de nota
+
+## Longevidad según el tipo de ciclo de actividad ##
+
+Al hacer la relación entre la longevidad y el ciclo de actividad, en la Figura 1 se puede observar que las especies con mayor longevidad son las que tienen un ciclo de actividad diurno con un promedio de `r round((Resumen_Longevidad %>% filter(Ciclo_Activo == "3"))$mean_Longevidad)` años de vida, seguido de las especies de ciclo crepuscular con un promedio de `r round((Resumen_Longevidad %>% filter(Ciclo_Activo == "2"))$mean_Longevidad)` años de vida y por ultimo las especies con un ciclo nocturno las cuales tienen un promedio de `r round((Resumen_Longevidad %>% filter(Ciclo_Activo == "1"))$mean_Longevidad)` de años de vida.    
+
+
+```{r fig.cap="Figura 1. longevidad de diferentes especies de mamíferos según su ciclo de actividad donde **1** nocturno, **2** crepuscular y **3** diurno y * especies.", fig.align="center"}
+fig_cap <- captioner::captioner(prefix = "Figura", auto_space = TRUE, levels = 1, type = NULL, infix = ".")
+ggplot(Tabla_1, aes(x = Ciclo_Activo, y = Longevidad)) + geom_boxplot(aes(group = Ciclo_Activo), fill = "#158a4b") + geom_jitter(size = 0.7, shape = 8) + theme_classic()
+```
+
+
+```{r}
+##Para saber en promedio cuanto viven los primates
+
+Tabla_2<-Tabla_1 %>% select(Orden, Ciclo_Activo, Especies, Longevidad) 
+
+Primates<-Tabla_2 %>% select(Orden, Longevidad)%>% filter(Orden=="Primates")
+
+```
+
+Las especies con ciclo diurno que viven durante más tiempo son mayoritariamente del orden primates los cuales en promedio viven durante `r round(mean(Primates$Longevidad))`, sin embargo, la especie _Pan troglodytes_ en promedio vive hasta los 60 años. No obstante, la especie que tiene la maxima longevidad es del orden Proboscidea y es un elefante: Loxodonta africana el cual en promedio puede llegar a los 80 años (tabla 1).    
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+library(knitr)
+library(kableExtra)
+Tabla_3<-Tabla_2 %>% filter(Ciclo_Activo== "3") %>% select(Orden,Especies,Longevidad) 
+Tabla_3<-arrange(Tabla_3,-Longevidad)
+Tabla_3<-filter(Tabla_3,Longevidad >= 45) 
+kable(Tabla_3, caption = "_**Tabla 1.**_ Lista de las diez primeras especies de ciclo diurno con la mayor longevidad") %>%
+kable_styling(latex_options = "striped", full_width = F) %>%
+footnote(general = "*_Edad en años_",
+         general_title = "")
+```
+
+**_Nota_**: _PanTHERIA es una base de datos de especies de mamíferos únicamente que tienen como objetivo documentar patrones de estas especies para poder haces análisis comparativos. En el presente trabajo se comparó algunas de las variables presentes allí con la unica finalidad de conocer y aplicar conceptos de investigación reproducible y escritura de datos a partir de bases de datos._ 
